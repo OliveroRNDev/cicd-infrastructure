@@ -1,0 +1,58 @@
+version: "3.7"
+services:
+  dind:
+    image: docker:dind
+    container_name: dind
+    #privileged is needed for nested containers and is not the same as running as root
+    privileged: true
+    #the daemon for docker uses TLS connection
+    #environment and volumes are necessary as per dind image setup on docker hub
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+    volumes:
+      - docker-certs-ca:/certs/ca
+      - docker-certs-client:/certs/client
+      - dind-storage:/var/lib/docker #persists image layers/build cache
+    networks:
+      #this creates isolation so that nothing outside this network can access the
+      #did service
+      - jenkins_dind
+    #enables TLS trough port 2376
+    expose:
+      - 2376
+  jenkins:
+    build: ./jenkins
+    container_name: jenkins
+    #tells this service to start dind before
+    depends_on:
+      - dind
+    ports:
+      #connection between Jenkins webUI to host only on local network
+      - "127.0.0.1:8080:8080"
+      #JNLP port to connect other containers running Jenkins if needed
+      - "127.0.0.1:50000:50000"
+    #Reference: https://www.jenkins.io/doc/book/installing/docker/
+    #for volumes and environment
+    volumes:
+      #this is needed as per documentation in jenkins
+      - jenkins_home:/var/jenkins_home
+      #jenkins needs access to this volume but has a read only option, so no write privilege
+      - docker-certs-client:/certs/client:ro
+    environment:
+      DOCKER_HOST: "tcp://dind:2376"
+      DOCKER_CERT_PATH: /certs/client
+      DOCKER_TLS_VERIFY: "1"
+    #connect to the same network as dind
+    networks:
+      - jenkins_dind
+
+networks:
+  jenkins_dind:
+    #creates virtual network
+    driver: bridge
+
+volumes:
+  jenkins_home:
+  dind-storage:
+  docker-certs-ca:
+  docker-certs-client:
