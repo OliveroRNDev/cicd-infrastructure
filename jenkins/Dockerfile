@@ -1,6 +1,6 @@
 #Reference: https://www.jenkins.io/doc/book/installing/docker/
 #this is custom jenkins image with docker installed
-FROM jenkins/jenkins:2.568.3-jdk21
+FROM jenkins/jenkins:lts-jdk17
 #this is just a root user privilege for building the image NOT
 #for running the container
 USER root
