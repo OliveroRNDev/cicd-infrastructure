@@ -72,6 +72,15 @@ services:
       echo jenkins_dind network ready;
       "
     restart: "no"
+  jenkins-init:
+    image: busybox
+    container_name: jenkins-init
+    depends_on:
+      - jenkins
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    entrypoint: sh -c "mkdir -p /var/jenkins_home/logs && chown -R 1000:1000 /var/jenkins_home/logs && echo 'logs dir ready'"
+    restart: "no"
 networks:
   jenkins_dind:
     #creates virtual network
